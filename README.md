@@ -2,78 +2,74 @@
 
 Historically Bash environment for Nushell was provided via the `nu_plugin_bash_env` plugin in this repo.
 
-That plugin has now been removed in favour of the `bash-env` module, which is more feature rich and also embarrassingly simpler than the plugin.  For historical documentation for the plugin see its [README](README.plugin.md).
+That plugin has now been removed in favour of the `bash-env` module, which is more feature rich and also embarrassingly simpler than the plugin.
 
-## bash-env module
+#### Introduction
 
-### Examples
+This edition of the adapter focused on catering to Nushell's strengths and prioritizing "thinking in nu" when putting the polish on.
 
-#### Simple Usage
-```
-> bash-env ./tests/simple.env
-╭───┬───╮
-│ B │ b │
-│ A │ a │
-╰───┴───╯
-> echo $env.A
-Error: nu::shell::column_not_found
+Environment variables (only) may be auto-loaded with `-l` or `--load`. Shell variables cannot be automatically loaded.
 
-  × Cannot find column 'A'
-   ╭─[entry #77:1:6]
- 1 │ echo $env.A
-   ·      ───┬──┬
-   ·         │  ╰── value originates here
-   ·         ╰── cannot find column 'A'
-   ╰────
+```nu
+# bash-env-nushell
+# * forked by zaynram on 2026-05-07
 
-> bash-env ./tests/simple.env | load-env
-> echo $env.A
-a
-> echo $env.B
-b
+## Installation
 
+> $NU_LIB_DIRS.0?
+| default $env.pwd
+| path join bash-env
+| prepend [https://github.com/zaynram/bash-env-nushell]
+| git clone ...$in
 
-> bash-env tests/simple.env
-╭──────────────╮
-│ empty record │
-╰──────────────╯
+## Basic Usage
 
-# no new or changed environment variables, so nothing returned
-
-> ssh-agent | bash-env
-╭───────────────┬─────────────────────────────────────╮
-│ SSH_AUTH_SOCK │ /tmp/ssh-XXXXXXOjZtSh/agent.1612713 │
-│ SSH_AGENT_PID │ 1612715                             │
-╰───────────────┴─────────────────────────────────────╯
+> ssh-agent | bash-env --load
++------------------------------------+
+| SSH_AUTH_SOCK | /tmp/ssh-x/agent.n |
+| SSH_AGENT_PID | 648298             |
++------------------------------------+
+> $env.ssh_agent_pid
+648298
 ```
 
 #### Shell Variables
 
-Rather than folding shell variables in with the environment variables as was done by the plugin, the `-s` or `--shellvars` option results in structured output with separate `env` and `shellvars`.
+Rather than folding shell variables in with the environment variables as was done by the plugin, the `-v` or `--vars` option results in structured output with separate `env` and `shellvars`.
+
+Metadata from `bash-env-json` can optionally be preserved using the `-m` or `--meta` flag.
+
+```nu
+# capture shell variables 
+> echo ABC=123 | bash-env --vars
++-------------------------------+
+| env       | {record 0 fields} |
+| shellvars | +-------------+   |
+|           | | ABC  | 123  |   |
+|           | +-------------+   |
++-------------------------------+
+
+# add shell variables to env
+> [A=1 B=2 C=3] 
+| bash-env --vars
+| get shellvars
+| load-env
+> $env | select A B C
++-------------------------------+
+| A         | 1                 |
+| B         | 2                 |
+| C         | 3                 |
++-------------------------------+
 
 ```
-> echo "ABC=123" | bash-env
-╭──────────────╮
-│ empty record │
-╰──────────────╯
 
-> echo "ABC=123" | bash-env -s
-╭───────────┬───────────────────╮
-│ env       │ {record 0 fields} │
-│           │ ╭─────┬─────╮     │
-│ shellvars │ │ ABC │ 123 │     │
-│           │ ╰─────┴─────╯     │
-╰───────────┴───────────────────╯
-> (echo "ABC=123" | bash-env -s).shellvars
-╭─────┬─────╮
-│ ABC │ 123 │
-╰─────┴─────╯
+---
 
-> bash-env /etc/os-release
-╭──────────────╮
-│ empty record │
-╰──────────────╯
+## Original Examples
 
+The remaining examples are unedited from the forked repository and are not accurate going into the future. They are still useful to get an idea of what's possible; the main difference is `-f` and `--fn` was replaced by `-e` and `--exec`.
+
+```nu
 > (bash-env /etc/os-release -s).shellvars
 ╭───────────────────┬─────────────────────────────────────────╮
 │ LOGO              │ nix-snowflake                           │
@@ -98,7 +94,7 @@ Rather than folding shell variables in with the environment variables as was don
 
 Shell functions may be run and their effect on the environment captured.
 
-```
+```nu
 > cat ./tests/shell-functions.env
 export A=1
 export B=1
@@ -158,23 +154,3 @@ function f3() {
 2
 
 ```
-
-### Installation
-
-Download the module, and add to `config.nu`:
-
-```
-use /path/to/bash-env.nu
-```
-
-In contrast to the plugin, the module requires [`bash-env-json`](https://github.com/tesujimath/bash-env-json) to be separately downloaded and installed as an executable on the `$PATH`.
-
-## Nix flake
-
-The module is installable from its flake using Nix Home Manager.
-
-See my own [Home Manager flake](https://github.com/tesujimath/home.nix/blob/main/flake.nix#L12) and [nushell module](https://github.com/tesujimath/home.nix/blob/main/modules/nushell/default.nix) for hints how to achieve this.  Note in particular the requirement for [each-time plugin registration](https://github.com/tesujimath/home.nix/blob/main/modules/nushell/config.nu#L761).
-
-## Future work
-
-- unsetting an environment variable ought to be possible
