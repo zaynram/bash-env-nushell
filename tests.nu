@@ -1,85 +1,65 @@
-use std assert
+use std/assert
+use ../bash-env
 
-# TODO use testing.nu testing module,
-# which wasn't working at the time I wrote these tests
-
-#[test]
-def test_echo [] {
-  let actual = echo "export A=123" | bash-env
-  let expected = { A: "123" }
-  assert equal $actual $expected
+def "test echo" []: nothing -> nothing {
+    let actual = "export A=123" | bash-env
+    let expected = {A: "123"}
+    assert equal $actual $expected
 }
 
-#[test]
-def test_not_exported [] {
-  let actual = echo "A=123" | bash-env
-  let expected = { }
-  assert equal $actual $expected
+def "test not-exported" []: nothing -> nothing {
+    let actual = "A=123" | bash-env
+    let expected = {}
+    assert equal $actual $expected
 }
 
-#[test]
-def test_export_shell_variables [] {
-  let actual = echo "A=123" | bash-env --export [A]
-  let expected = { A: "123" }
-  assert equal $actual $expected
+def "test shell-variables-inline" []: nothing -> nothing {
+    let actual = "A=123" | bash-env --vars | get shellvars
+    let expected = {A: "123"}
+    assert equal $actual $expected
 }
 
-#[test]
-def test_shell_variables_from_file [] {
-  let actual = bash-env tests/shell-variables.env
-  let expected = { B: "exported" }
-  assert equal $actual $expected
+def "test shell-variables-from-file" []: nothing -> nothing {
+    let actual = bash-env tests/shell-variables.env
+    let expected = {B: exported}
+    assert equal $actual $expected
 }
 
-#[test]
-def test_export_shell_variables_from_file [] {
-  let actual = bash-env --export [A] tests/shell-variables.env
-  let expected = { A: "not exported" B: "exported" }
-  assert equal $actual $expected
+def "test empty-value" []: nothing -> nothing {
+    let actual = "export A=\"\"" | bash-env
+    let expected = {A: ""}
+    assert equal $actual $expected
 }
 
-#[test]
-def test_empty_value [] {
-  let actual = echo "export A=\"\"" | bash-env
-  let expected = { A: "" }
-  assert equal $actual $expected
+def "test simple-file" []: nothing -> nothing {
+    let actual = bash-env tests/simple.env
+    let expected = {A: a, B: b}
+    assert equal $actual $expected
 }
 
-#[test]
-def test_simple_file [] {
-  let actual = bash-env tests/simple.env
-  let expected = { A: "a" B: "b" }
-  assert equal $actual $expected
+def "test cat-simple-file" []: nothing -> nothing {
+    let actual = open --raw tests/simple.env | bash-env # nu-lint-ignore: catch_builtin_error_try
+    let expected = {A: a, B: b}
+    assert equal $actual $expected
 }
 
-#[test]
-def test_cat_simple_file [] {
-  let actual = cat tests/simple.env | bash-env
-  let expected = { A: "a" B: "b" }
-  assert equal $actual $expected
+def "test nasty-values-from-file" []: nothing -> nothing {
+    let actual = bash-env "tests/Ming's menu of (merciless) monstrosities.env"
+    let expected = [[SPACEMAN, QUOTE, MIXED_BAG]; ["One small step for a man ...", "\"Well done!\" is better than \"Well said!\"", "Did the sixth sheik's sixth sheep say \"baa\", or not?"]] | into record
+    assert equal $actual $expected
 }
 
-#[test]
-def test_nasty_values_from_file [] {
-  let actual = bash-env "tests/Ming's menu of (merciless) monstrosities.env"
-  let expected = {
-    SPACEMAN: "One small step for a man ..."
-    QUOTE: "\"Well done!\" is better than \"Well said!\""
-    MIXED_BAG: "Did the sixth sheik's sixth sheep say \"baa\", or not?"
-  }
-  assert equal $actual $expected
-}
-
-export def run_bash_env_tests [] {
-  test_echo
-  test_not_exported
-  test_export_shell_variables
-  test_shell_variables_from_file
-  test_export_shell_variables_from_file
-  test_empty_value
-  test_simple_file
-  test_cat_simple_file
-  test_nasty_values_from_file
-
-  print "All tests passed"
+def main [
+    --verbose(-v) # Show verbose error information for failing tests
+]: nothing -> nothing {
+    nu --commands $'source ($env.CURRENT_FILE); ( # nu-lint-ignore: redundant_nu_subprocess
+        scope commands
+            | where type == custom and name =~ ^test\s\w+ and description !~ ^\s*ignore\.*$
+            | get name
+            | each {|test| [
+                $"print --no-newline \"executing ($test) ... \""
+                $"try { ($test); print \"(ansi g)[ok](ansi rst)\" } catch {|err| print --stderr \"(ansi r)[err](ansi rst)\"; if ($verbose) { print --stderr $err.rendered } }"
+            ] } | flatten
+            | str join "; "
+    )'
 }
