@@ -2,7 +2,7 @@
 const PARENT: path = path self ..
 const SUITES: path = path self ./tests/suites/
 const NU_LIB_DIRS = [$PARENT]
-try { use bash-env-nushell } catch { use bash-env }
+try { use bash-env-nushell }
 # Run tests for the `bash-env` nushell module.
 #
 # The `--include` pattern uses regex matching (=~)
