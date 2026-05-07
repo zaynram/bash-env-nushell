@@ -7,6 +7,7 @@ explicit_optional_access = false
 [groups]
 
 [rules]
-spread_list_to_external = "off"
-unused_helper_functions = "off"
 redundant_nu_subprocess = "off"
+nu_parse_error = "off"
+unused_helper_functions = "off"
+spread_list_to_external = "off"
