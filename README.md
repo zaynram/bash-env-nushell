@@ -17,19 +17,31 @@ Environment variables (only) may be auto-loaded with `-l` or `--load`. Shell var
 
 ## Installation
 
-> $NU_LIB_DIRS.0?
-| default $env.pwd
+# i. clone
+> $NU_LIB_DIRS
+| first
 | path join bash-env
 | prepend [https://github.com/zaynram/bash-env-nushell]
-| git clone ...$in
+| do --capture-errors {|url: string dst: path| 
+    git clone $url $dst
+    $dst # symlink for local testing (optional)
+    | path basename --replace bash-env-nushell 
+    | ln -s $dst $in
+} ...$in
+
+# ii. import
+> use bash-env
 
 ## Basic Usage
 
+# i. load
 > ssh-agent | bash-env --load
 +------------------------------------+
 | SSH_AUTH_SOCK | /tmp/ssh-x/agent.n |
 | SSH_AGENT_PID | 648298             |
 +------------------------------------+
+
+# ii. verify
 > $env.ssh_agent_pid
 648298
 ```
@@ -39,7 +51,7 @@ Environment variables (only) may be auto-loaded with `-l` or `--load`. Shell var
 Rather than folding shell variables in with the environment variables as was done by the plugin, the `-v` or `--vars` option results in structured output with separate `env` and `shellvars`.
 
 ```nu
-# capture shell variables 
+# a. capture shell variables 
 > echo ABC=123 | bash-env --vars
 +-------------------------------+
 | env       | {record 0 fields} |
@@ -48,7 +60,7 @@ Rather than folding shell variables in with the environment variables as was don
 |           | +-------------+   |
 +-------------------------------+
 
-# add shell variables to env
+# b. add shell variables to env
 > [A=1 B=2 C=3] 
 | bash-env --vars
 | get shellvars
