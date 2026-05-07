@@ -8,3 +8,4 @@ explicit_optional_access = false
 
 [rules]
 unused_helper_functions = "off"
+redundant_nu_subprocess = "off"

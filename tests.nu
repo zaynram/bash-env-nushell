@@ -1,65 +1,29 @@
-use std/assert
-use ../bash-env
-
-def "test echo" []: nothing -> nothing {
-    let actual = "export A=123" | bash-env
-    let expected = {A: "123"}
-    assert equal $actual $expected
-}
-
-def "test not-exported" []: nothing -> nothing {
-    let actual = "A=123" | bash-env
-    let expected = {}
-    assert equal $actual $expected
-}
-
-def "test shell-variables-inline" []: nothing -> nothing {
-    let actual = "A=123" | bash-env --vars | get shellvars
-    let expected = {A: "123"}
-    assert equal $actual $expected
-}
-
-def "test shell-variables-from-file" []: nothing -> nothing {
-    let actual = bash-env tests/shell-variables.env
-    let expected = {B: exported}
-    assert equal $actual $expected
-}
-
-def "test empty-value" []: nothing -> nothing {
-    let actual = "export A=\"\"" | bash-env
-    let expected = {A: ""}
-    assert equal $actual $expected
-}
-
-def "test simple-file" []: nothing -> nothing {
-    let actual = bash-env tests/simple.env
-    let expected = {A: a, B: b}
-    assert equal $actual $expected
-}
-
-def "test cat-simple-file" []: nothing -> nothing {
-    let actual = open --raw tests/simple.env | bash-env # nu-lint-ignore: catch_builtin_error_try
-    let expected = {A: a, B: b}
-    assert equal $actual $expected
-}
-
-def "test nasty-values-from-file" []: nothing -> nothing {
-    let actual = bash-env "tests/Ming's menu of (merciless) monstrosities.env"
-    let expected = [[SPACEMAN, QUOTE, MIXED_BAG]; ["One small step for a man ...", "\"Well done!\" is better than \"Well said!\"", "Did the sixth sheik's sixth sheep say \"baa\", or not?"]] | into record
-    assert equal $actual $expected
-}
-
+#!/usr/bin/env nu
+const DEFAULT: path = path self ./tests/suites/default.nu
+const EXTRA: path = path self ./tests/suites/extra.nu
 def main [
     --verbose(-v) # Show verbose error information for failing tests
+    --extra(-e) # Run the extended test suite (includes tests from extra-module-tests.nu)
 ]: nothing -> nothing {
-    nu --commands $'source ($env.CURRENT_FILE); ( # nu-lint-ignore: redundant_nu_subprocess
-        scope commands
-            | where type == custom and name =~ ^test\s\w+ and description !~ ^\s*ignore\.*$
-            | get name
-            | each {|test| [
-                $"print --no-newline \"executing ($test) ... \""
-                $"try { ($test); print \"(ansi g)[ok](ansi rst)\" } catch {|err| print --stderr \"(ansi r)[err](ansi rst)\"; if ($verbose) { print --stderr $err.rendered } }"
-            ] } | flatten
-            | str join "; "
-    )'
+    let files: list<record<index: int item: path>> = [$DEFAULT]
+    | if $extra { $in | append [$EXTRA] } else { $in }
+    | enumerate
+    for f in $files {
+        print $"(ansi dark_gray_bold)#[(ansi rst)(ansi blue_bold)suite(ansi rst)\((ansi pink3)($f.item | path basename)(ansi rst))(ansi dark_gray_bold)](ansi rst)"
+        nu --commands $'source ($f.item); do ({|verbose|
+            let commands: list<string> = scope commands
+                | where type == custom and name =~ ^test\s\w+ and description !~ ^\s*ignore\.*$
+                | get name
+            for test in $commands {
+                print --no-newline $"($test | nu-highlight)(ansi attr_dimmed)...(ansi rst)"
+                try {
+                    $test
+                    print $"(ansi g)[ok](ansi rst)"
+                } catch {|err|
+                    print --stderr $"(ansi r)[err](ansi rst)"
+                    if ($verbose) { print --stderr $err.rendered }
+                }
+             }
+        } | to nuon --serialize | from nuon) ($verbose)' # nu-lint-ignore: catch_builtin_error_try
+    }
 }
