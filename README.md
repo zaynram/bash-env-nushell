@@ -11,6 +11,7 @@ This edition of the adapter focused on catering to Nushell's strengths and prior
 Environment variables (only) may be auto-loaded with `-l` or `--load`. Shell variables cannot be automatically loaded.
 
 ```nu
+#!/usr/bin/env nu
 # bash-env-nushell
 # * forked by zaynram on 2026-05-07
 
