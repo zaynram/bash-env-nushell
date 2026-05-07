@@ -12,25 +12,22 @@ env:
 
 jobs:
   test:
-    name: Test
+    name: run tests
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout
+      - name: checkout
         uses: actions/checkout@v4
-      - name: Download Nushell $NU_VERSION
+      - name: download nushell $NU_VERSION
         run: |
           curl -L https://github.com/nushell/nushell/releases/download/${NU_VERSION}/nu-${NU_VERSION}-x86_64-unknown-linux-gnu.tar.gz | tar xzf -
-      - name: Version Check
+      - name: version check
         run: |
           export PATH=./nu-${NU_VERSION}-x86_64-unknown-linux-gnu:$PATH
           nu --version
           bash --version
           jq --version
-      - name: Download bash-env-json $BASH_ENV_JSON_VERSION
-        run: |
-          curl -L https://github.com/tesujimath/bash-env-json/archive/refs/tags/${BASH_ENV_JSON_VERSION}.tar.gz | tar xzf -
       - name: Run Module Tests
         run: |
           # note that Nushell doesn't like relative paths on the $PATH
-          export PATH=$(pwd)/bash-env-json-${BASH_ENV_JSON_VERSION}:./nu-${NU_VERSION}-x86_64-unknown-linux-gnu:$PATH
-          nu --no-config-file --no-history -c 'tests.nu --include .+'
+          export PATH="./nu-${NU_VERSION}-x86_64-unknown-linux-gnu:${PATH}"
+          nu --no-config-file --no-history -c './tests.nu --include .+'
