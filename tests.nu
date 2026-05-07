@@ -1,9 +1,8 @@
 #!/usr/bin/env nu
-const NU_LIB_DIRS: list<path> = [
-    (path self ..)
-]
-use bash-env
+const PARENT: path = path self ..
 const SUITES: path = path self ./tests/suites/
+const NU_LIB_DIRS = [$PARENT]
+use bash-env
 # Run tests for the `bash-env` nushell module.
 #
 # The `--include` pattern uses regex matching (=~)
@@ -25,7 +24,7 @@ def main [
             for test in $commands {
                 print --no-newline $"($test | nu-highlight)(ansi attr_dimmed)...(ansi rst)"
                 try {
-                    $test
+                    with-env {NU_LIB_DIRS: ($env.NU_LIB_DIRS ++ $NU_LIB_DIRS)} { $test }
                     print $"(ansi g)[ok](ansi rst)"
                 } catch {|err|
                     print --stderr $"(ansi r)[err](ansi rst)"
