@@ -1,4 +1,8 @@
 #!/usr/bin/env nu
+const NU_LIB_DIRS: list<path> = [
+    (path self ..)
+]
+use bash-env
 const SUITES: path = path self ./tests/suites/
 # Run tests for the `bash-env` nushell module.
 #

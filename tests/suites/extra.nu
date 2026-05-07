@@ -1,5 +1,5 @@
+const TESTS: path = path self ..
 use std/assert
-use ../../../bash-env
 
 def "test shell-variables" []: nothing -> nothing {
     let actual = ("A=123" | bash-env --vars).shellvars
@@ -8,7 +8,8 @@ def "test shell-variables" []: nothing -> nothing {
 }
 
 def "test shell-variables-from-file" []: nothing -> nothing {
-    let actual = bash-env --vars tests/shell-variables.env
+    let file = $TESTS | path join shell-variables.env
+    let actual = bash-env --vars $file
     let expected = {
         shellvars: {A: "not exported"}
         env: {B: exported}
@@ -17,7 +18,8 @@ def "test shell-variables-from-file" []: nothing -> nothing {
 }
 
 def "test shell-functions" []: nothing -> nothing {
-    let actual = bash-env --exec [f2 f3] tests/shell-functions.env
+    let file = $TESTS | path join shell-functions.env
+    let actual = bash-env --exec [f2 f3] $file
     let expected = {
         env: {B: "1", A: "1"}
         shellvars: {}
