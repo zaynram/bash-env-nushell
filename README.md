@@ -38,8 +38,6 @@ Environment variables (only) may be auto-loaded with `-l` or `--load`. Shell var
 
 Rather than folding shell variables in with the environment variables as was done by the plugin, the `-v` or `--vars` option results in structured output with separate `env` and `shellvars`.
 
-Metadata from `bash-env-json` can optionally be preserved using the `-m` or `--meta` flag.
-
 ```nu
 # capture shell variables 
 > echo ABC=123 | bash-env --vars
@@ -63,6 +61,8 @@ Metadata from `bash-env-json` can optionally be preserved using the `-m` or `--m
 +-------------------------------+
 
 ```
+
+Metadata from `bash-env-json` can optionally be preserved using the `-m` or `--meta` flag.
 
 ---
 
