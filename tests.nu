@@ -1,16 +1,20 @@
 #!/usr/bin/env nu
-const DEFAULT: path = path self ./tests/suites/default.nu
-const EXTRA: path = path self ./tests/suites/extra.nu
+const SUITES: path = path self ./tests/suites/
+# Run tests for the `bash-env` nushell module.
+#
+# The `--include` pattern uses regex matching (=~)
+# against the basenames of the suite files.
 def main [
     --verbose(-v) # Show verbose error information for failing tests
-    --extra(-e) # Run the extended test suite (includes tests from extra-module-tests.nu)
+    --include(-i): string = default # Include tests from matching files in `tests/suites`
 ]: nothing -> nothing {
-    let files: list<record<index: int item: path>> = [$DEFAULT]
-    | if $extra { $in | append [$EXTRA] } else { $in }
+    let files: list<record<index: int item: path>> = try { ls $SUITES } catch { [] }
+    | get name
+    | where ($it | path basename) =~ $include
     | enumerate
     for f in $files {
         print $"(ansi dark_gray_bold)#[(ansi rst)(ansi blue_bold)suite(ansi rst)\((ansi pink3)($f.item | path basename)(ansi rst))(ansi dark_gray_bold)](ansi rst)"
-        nu --commands $'source ($f.item); do ({|verbose|
+        nu --commands $'source ($f.item | path expand); do ({|verbose|
             let commands: list<string> = scope commands
                 | where type == custom and name =~ ^test\s\w+ and description !~ ^\s*ignore\.*$
                 | get name
